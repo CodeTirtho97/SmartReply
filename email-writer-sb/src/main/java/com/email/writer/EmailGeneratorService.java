@@ -45,10 +45,11 @@ public class EmailGeneratorService {
             return "Error: Gemini API not properly configured. Please check environment variables.";
         }
 
-        // Build the prompt
-        String prompt = buildPrompt(emailRequest);
+        // Build the enhanced prompt with user preferences
+        String prompt = buildEnhancedPrompt(emailRequest);
 
         log.info("Attempting to call Gemini API with URL: {}", geminiApiUrl);
+        log.debug("Generated prompt: {}", prompt);
 
         try {
             // Craft a request exactly like Postman
@@ -57,7 +58,13 @@ public class EmailGeneratorService {
                             Map.of("parts", new Object[] {
                                     Map.of("text", prompt)
                             })
-                    }
+                    },
+                    "generationConfig", Map.of(
+                            "temperature", 0.7,
+                            "maxOutputTokens", 1000,
+                            "topP", 0.8,
+                            "topK", 40
+                    )
             );
 
             String jsonBody = objectMapper.writeValueAsString(requestBody);
@@ -69,7 +76,7 @@ public class EmailGeneratorService {
                     .uri(URI.create(url))
                     .timeout(Duration.ofSeconds(30))
                     .header("Content-Type", "application/json")
-                    .header("User-Agent", "EmailWriter/1.0")
+                    .header("User-Agent", "SmartReply+/1.0")
                     .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                     .build();
 
@@ -117,13 +124,57 @@ public class EmailGeneratorService {
         }
     }
 
-    private String buildPrompt(EmailRequest emailRequest) {
+    /**
+     * Build enhanced prompt with user preferences and tone
+     */
+    private String buildEnhancedPrompt(EmailRequest emailRequest) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("Generate a professional email reply for the following email content. Please don't generate a subject line ");
+
+        // Base instruction
+        prompt.append("You are SmartReply+, an AI email assistant. Generate a professional email reply for the following email content. ");
+
+        // Add tone-specific instructions
         if (emailRequest.getTone() != null && !emailRequest.getTone().isEmpty()) {
-            prompt.append("Use a ").append(emailRequest.getTone()).append(" tone.");
+            switch (emailRequest.getTone().toLowerCase()) {
+                case "professional":
+                    prompt.append("Use a professional, courteous tone. Be formal but approachable. ");
+                    break;
+                case "casual":
+                    prompt.append("Use a casual, friendly tone. Be relaxed and conversational. ");
+                    break;
+                case "friendly":
+                    prompt.append("Use a warm, friendly tone. Be personable and engaging. ");
+                    break;
+                case "formal":
+                    prompt.append("Use a formal, business-appropriate tone. Be respectful and structured. ");
+                    break;
+                case "concise":
+                    prompt.append("Be brief and to-the-point. Use short sentences and get straight to the message. ");
+                    break;
+                default:
+                    prompt.append("Use a ").append(emailRequest.getTone()).append(" tone. ");
+            }
         }
-        prompt.append("\n Original Email: \n").append(emailRequest.getEmailContent());
+
+        // Add custom prompt if provided
+        if (emailRequest.getCustomPrompt() != null && !emailRequest.getCustomPrompt().trim().isEmpty()) {
+            prompt.append("Additional writing style requirements: ").append(emailRequest.getCustomPrompt().trim()).append(" ");
+        }
+
+        // Add specific instructions
+        prompt.append("Important guidelines: ");
+        prompt.append("- Do NOT include a subject line ");
+        prompt.append("- Start directly with the email body ");
+        prompt.append("- Keep the response contextually appropriate ");
+        prompt.append("- Include proper greeting and closing ");
+        prompt.append("- Make sure the reply addresses the main points of the original email ");
+
+        // Add original email content
+        prompt.append("\n\nOriginal Email Content:\n").append(emailRequest.getEmailContent());
+
+        // Final instruction
+        prompt.append("\n\nGenerate only the email reply body (no subject line):");
+
         return prompt.toString();
     }
 }
