@@ -1,34 +1,46 @@
-import React, { useEffect, useState } from 'react';
-import { ThemeContext } from './context';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
-const ThemeProvider = ({ children }) => {
-  const [isDark, setIsDark] = useState(() => {
-    // Check if user has a preference stored
-    const stored = localStorage.getItem('theme');
-    if (stored) {
-      return stored === 'dark';
-    }
-    // Default to system preference
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+const ThemeContext = createContext();
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+};
+
+export const ThemeProvider = ({ children }) => {
+  const [theme, setTheme] = useState(() => {
+    // Check localStorage first, then system preference
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved;
+    
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   useEffect(() => {
-    const root = window.document.documentElement;
-    if (isDark) {
-      root.classList.add('dark');
+    // Save to localStorage
+    localStorage.setItem('theme', theme);
+    
+    // Apply to document
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
     } else {
-      root.classList.remove('dark');
+      document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
+  }, [theme]);
 
   const toggleTheme = () => {
-    setIsDark(!isDark);
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
   const value = {
-    isDark,
-    toggleTheme
+    theme,
+    setTheme,
+    toggleTheme,
+    isDark: theme === 'dark',
   };
 
   return (
@@ -37,5 +49,3 @@ const ThemeProvider = ({ children }) => {
     </ThemeContext.Provider>
   );
 };
-
-export default ThemeProvider;

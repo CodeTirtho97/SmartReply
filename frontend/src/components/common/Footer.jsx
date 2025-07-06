@@ -15,10 +15,15 @@ const Footer = () => {
                 alt="SmartReply+"
                 className="h-8 w-8 rounded-lg"
                 onError={(e) => {
+                  // Fallback to gradient background if image fails
                   e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
                 }}
               />
-              <span className="text-xl font-bold bg-gradient-blue bg-clip-text text-transparent">
+              <div className="h-8 w-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center" style={{ display: 'none' }}>
+                <span className="text-white font-bold text-sm">S+</span>
+              </div>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">
                 SmartReply+
               </span>
             </div>
@@ -37,7 +42,7 @@ const Footer = () => {
               <li>
                 <Link
                   to="/"
-                  className="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 text-sm transition-colors duration-200"
+                  className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm transition-colors duration-200"
                 >
                   Home
                 </Link>
@@ -45,18 +50,26 @@ const Footer = () => {
               <li>
                 <Link
                   to="/about"
-                  className="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 text-sm transition-colors duration-200"
+                  className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm transition-colors duration-200"
                 >
                   About
                 </Link>
               </li>
               <li>
+                <Link
+                  to="/pro"
+                  className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm transition-colors duration-200"
+                >
+                  Pro Features
+                </Link>
+              </li>
+              <li>
                 <a
                   href="#"
-                  className="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 text-sm transition-colors duration-200"
+                  className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm transition-colors duration-200"
                   onClick={(e) => {
                     e.preventDefault();
-                    alert('Chrome extension coming soon!');
+                    window.open('https://chrome.google.com/webstore/detail/smartreply-plus/YOUR_EXTENSION_ID', '_blank');
                   }}
                 >
                   Chrome Extension
@@ -75,7 +88,7 @@ const Footer = () => {
                 href="https://github.com/CodeTirtho97"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
                 aria-label="GitHub Profile"
               >
                 <Github className="h-5 w-5" />
@@ -84,7 +97,7 @@ const Footer = () => {
                 href="https://www.linkedin.com/in/tirthoraj-bhattacharya/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
+                className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
                 aria-label="LinkedIn Profile"
               >
                 <Linkedin className="h-5 w-5" />
@@ -93,18 +106,11 @@ const Footer = () => {
                 href="https://x.com/lucifer_7951"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200"
-                aria-label="LinkedIn Profile"
+                className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
+                aria-label="Twitter Profile"
               >
                 <Twitter className="h-5 w-5" />
               </a>
-              {/* <a
-                href="mailto:your.email@example.com"
-                className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors duration-200"
-                aria-label="Send Email"
-              >
-                <Mail className="h-5 w-5" />
-              </a> */}
             </div>
           </div>
         </div>

@@ -1,180 +1,208 @@
 package com.email.writer;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
-@Profile("!mock")
 public class EmailGeneratorService {
 
-    @Value("${gemini.api.url}")
-    private String geminiApiUrl;
+    private static final Logger logger = LoggerFactory.getLogger(EmailGeneratorService.class);
 
     @Value("${gemini.api.key}")
-    private String geminiApiKey;
+    private String apiKey;
 
-    private static final Logger log = LoggerFactory.getLogger(EmailGeneratorService.class);
-    private final HttpClient httpClient;
-    private final ObjectMapper objectMapper;
+    @Value("${gemini.api.url}")
+    private String apiUrl;
+
+    private final RestTemplate restTemplate;
 
     public EmailGeneratorService() {
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
-                .build();
-        this.objectMapper = new ObjectMapper();
+        this.restTemplate = new RestTemplate();
     }
 
-    public String generateEmailReply(EmailRequest emailRequest) {
-        // Validate configuration at runtime
-        if (geminiApiUrl == null || geminiApiUrl.contains("${") ||
-                geminiApiKey == null || geminiApiKey.contains("${")) {
-            log.error("Invalid Gemini API configuration. URL: {}, Key: {}",
-                    geminiApiUrl, geminiApiKey != null ? "[REDACTED]" : "null");
-            return "Error: Gemini API not properly configured. Please check environment variables.";
-        }
-
-        // Build the enhanced prompt with user preferences
-        String prompt = buildEnhancedPrompt(emailRequest);
-
-        log.info("Attempting to call Gemini API with URL: {}", geminiApiUrl);
-        log.debug("Generated prompt: {}", prompt);
-
+    public String generateEmailReply(EmailRequest request) {
         try {
-            // Craft a request exactly like Postman
-            Map<String, Object> requestBody = Map.of(
-                    "contents", new Object[] {
-                            Map.of("parts", new Object[] {
-                                    Map.of("text", prompt)
-                            })
-                    },
-                    "generationConfig", Map.of(
-                            "temperature", 0.7,
-                            "maxOutputTokens", 1000,
-                            "topP", 0.8,
-                            "topK", 40
-                    )
-            );
+            logger.info("Generating email reply with tone: {} and custom prompt: {}",
+                    request.getTone(), request.getCustomPrompt());
 
-            String jsonBody = objectMapper.writeValueAsString(requestBody);
-            String url = geminiApiUrl + "?key=" + geminiApiKey;
+            String prompt = buildDynamicPrompt(request);
+            String fullUrl = apiUrl + "?key=" + apiKey;
 
-            log.info("Making request to: {}", url.substring(0, url.indexOf("?key=")) + "?key=[REDACTED]");
+            logger.info("Attempting to call Gemini API with URL: {}", apiUrl);
+            logger.debug("Generated prompt: {}", prompt);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(30))
-                    .header("Content-Type", "application/json")
-                    .header("User-Agent", "SmartReply+/1.0")
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                    .build();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            Map<String, Object> requestBody = createGeminiRequestBody(prompt);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-            log.info("Received response with status: {}", response.statusCode());
+            logger.info("Making request to: {}", fullUrl.replace(apiKey, "[REDACTED]"));
+            ResponseEntity<Map> response = restTemplate.exchange(fullUrl, HttpMethod.POST, entity, Map.class);
+            logger.info("Received response with status: {}", response.getStatusCode());
 
-            if (response.statusCode() == 200) {
-                return extractResponseContent(response.body());
-            } else {
-                log.error("API returned status: {} with body: {}", response.statusCode(), response.body());
-                return "Error: API returned status " + response.statusCode() + ": " + response.body();
-            }
+            return extractResponseText(response.getBody());
 
-        } catch (java.net.ConnectException e) {
-            log.error("Connection error calling Gemini API: {}", e.getMessage());
-            return "Connection error: " + e.getMessage() + ". Please check your internet connection.";
         } catch (Exception e) {
-            log.error("Error calling Gemini API: {}", e.getMessage());
-            return "Error generating email reply: " + e.getMessage();
+            logger.error("Error generating email reply", e);
+            throw new RuntimeException("Failed to generate email reply: " + e.getMessage());
         }
     }
 
-    private String extractResponseContent(String response) {
-        try {
-            JsonNode rootNode = objectMapper.readTree(response);
+    private String buildDynamicPrompt(EmailRequest request) {
+        StringBuilder promptBuilder = new StringBuilder();
 
-            if (rootNode.has("candidates") && rootNode.get("candidates").size() > 0) {
-                String text = rootNode.path("candidates")
-                        .get(0)
-                        .path("content")
-                        .path("parts")
-                        .get(0)
-                        .path("text")
-                        .asText();
-                return text;
-            } else {
-                log.error("Unexpected response format: {}", response);
-                return "Error: Unexpected response format from Gemini API";
-            }
-        } catch (Exception e) {
-            log.error("Error parsing Gemini API response: {}", e.getMessage());
-            log.error("Raw response: {}", response);
-            return "Error Processing Request: " + e.getMessage();
-        }
-    }
+        // Base instructions
+        promptBuilder.append("You are SmartReply+, an AI email assistant. Generate a professional email reply for the following email content. ");
 
-    /**
-     * Build enhanced prompt with user preferences and tone
-     */
-    private String buildEnhancedPrompt(EmailRequest emailRequest) {
-        StringBuilder prompt = new StringBuilder();
+        // Dynamic tone mapping
+        String toneInstructions = getToneInstructions(request.getTone());
+        promptBuilder.append(toneInstructions);
 
-        // Base instruction
-        prompt.append("You are SmartReply+, an AI email assistant. Generate a professional email reply for the following email content. ");
-
-        // Add tone-specific instructions
-        if (emailRequest.getTone() != null && !emailRequest.getTone().isEmpty()) {
-            switch (emailRequest.getTone().toLowerCase()) {
-                case "professional":
-                    prompt.append("Use a professional, courteous tone. Be formal but approachable. ");
-                    break;
-                case "casual":
-                    prompt.append("Use a casual, friendly tone. Be relaxed and conversational. ");
-                    break;
-                case "friendly":
-                    prompt.append("Use a warm, friendly tone. Be personable and engaging. ");
-                    break;
-                case "formal":
-                    prompt.append("Use a formal, business-appropriate tone. Be respectful and structured. ");
-                    break;
-                case "concise":
-                    prompt.append("Be brief and to-the-point. Use short sentences and get straight to the message. ");
-                    break;
-                default:
-                    prompt.append("Use a ").append(emailRequest.getTone()).append(" tone. ");
-            }
-        }
+        // Important guidelines
+        promptBuilder.append(" Important guidelines: ");
+        promptBuilder.append("- Do NOT include a subject line ");
+        promptBuilder.append("- Start directly with the email body ");
+        promptBuilder.append("- Keep the response contextually appropriate ");
+        promptBuilder.append("- Include proper greeting and closing ");
+        promptBuilder.append("- Make sure the reply addresses the main points of the original email ");
 
         // Add custom prompt if provided
-        if (emailRequest.getCustomPrompt() != null && !emailRequest.getCustomPrompt().trim().isEmpty()) {
-            prompt.append("Additional writing style requirements: ").append(emailRequest.getCustomPrompt().trim()).append(" ");
+        if (request.getCustomPrompt() != null && !request.getCustomPrompt().trim().isEmpty()) {
+            promptBuilder.append("\n\nAdditional Style Instructions: ");
+            promptBuilder.append(request.getCustomPrompt().trim());
         }
 
-        // Add specific instructions
-        prompt.append("Important guidelines: ");
-        prompt.append("- Do NOT include a subject line ");
-        prompt.append("- Start directly with the email body ");
-        prompt.append("- Keep the response contextually appropriate ");
-        prompt.append("- Include proper greeting and closing ");
-        prompt.append("- Make sure the reply addresses the main points of the original email ");
-
         // Add original email content
-        prompt.append("\n\nOriginal Email Content:\n").append(emailRequest.getEmailContent());
+        promptBuilder.append("\n\nOriginal Email Content:\n");
+        promptBuilder.append(request.getEmailContent());
 
-        // Final instruction
-        prompt.append("\n\nGenerate only the email reply body (no subject line):");
+        promptBuilder.append("\n\nGenerate only the email reply body (no subject line):");
 
-        return prompt.toString();
+        return promptBuilder.toString();
+    }
+
+    private String getToneInstructions(String tone) {
+        if (tone == null || tone.trim().isEmpty()) {
+            tone = "professional";
+        }
+
+        switch (tone.toLowerCase()) {
+            case "professional":
+                return "Use a professional, courteous, and business-appropriate tone. Be formal but approachable.";
+
+            case "casual":
+                return "Use a casual, relaxed, and informal tone. Be friendly and conversational while remaining respectful.";
+
+            case "friendly":
+                return "Use a warm, friendly, and approachable tone. Be personable and engaging while maintaining professionalism.";
+
+            case "formal":
+                return "Use a very formal, respectful, and traditional business tone. Be extremely polite and structured.";
+
+            case "concise":
+                return "Use a brief, direct, and to-the-point tone. Keep the response short while being polite and clear.";
+
+            default:
+                logger.warn("Unknown tone '{}', defaulting to professional", tone);
+                return "Use a professional, courteous, and business-appropriate tone. Be formal but approachable.";
+        }
+    }
+
+    private Map<String, Object> createGeminiRequestBody(String prompt) {
+        Map<String, Object> requestBody = new HashMap<>();
+
+        // Create the parts array with the prompt
+        Map<String, String> textPart = new HashMap<>();
+        textPart.put("text", prompt);
+
+        Map<String, Object> part = new HashMap<>();
+        part.put("parts", List.of(textPart));
+
+        requestBody.put("contents", List.of(part));
+
+        // Generation configuration for better responses
+        Map<String, Object> generationConfig = new HashMap<>();
+        generationConfig.put("temperature", 0.7);
+        generationConfig.put("topK", 40);
+        generationConfig.put("topP", 0.95);
+        generationConfig.put("maxOutputTokens", 1024);
+
+        requestBody.put("generationConfig", generationConfig);
+
+        // Safety settings to prevent blocking
+        List<Map<String, Object>> safetySettings = List.of(
+                createSafetySetting("HARM_CATEGORY_HARASSMENT", "BLOCK_NONE"),
+                createSafetySetting("HARM_CATEGORY_HATE_SPEECH", "BLOCK_NONE"),
+                createSafetySetting("HARM_CATEGORY_SEXUALLY_EXPLICIT", "BLOCK_NONE"),
+                createSafetySetting("HARM_CATEGORY_DANGEROUS_CONTENT", "BLOCK_NONE")
+        );
+
+        requestBody.put("safetySettings", safetySettings);
+
+        return requestBody;
+    }
+
+    private Map<String, Object> createSafetySetting(String category, String threshold) {
+        Map<String, Object> setting = new HashMap<>();
+        setting.put("category", category);
+        setting.put("threshold", threshold);
+        return setting;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String extractResponseText(Map<String, Object> responseBody) {
+        try {
+            if (responseBody == null) {
+                throw new RuntimeException("Empty response from Gemini API");
+            }
+
+            List<Map<String, Object>> candidates = (List<Map<String, Object>>) responseBody.get("candidates");
+            if (candidates == null || candidates.isEmpty()) {
+                logger.error("No candidates in response: {}", responseBody);
+                throw new RuntimeException("No candidates in API response");
+            }
+
+            Map<String, Object> firstCandidate = candidates.get(0);
+            Map<String, Object> content = (Map<String, Object>) firstCandidate.get("content");
+
+            if (content == null) {
+                logger.error("No content in candidate: {}", firstCandidate);
+                throw new RuntimeException("No content in API response");
+            }
+
+            List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
+            if (parts == null || parts.isEmpty()) {
+                logger.error("No parts in content: {}", content);
+                throw new RuntimeException("No parts in API response");
+            }
+
+            String text = (String) parts.get(0).get("text");
+            if (text == null || text.trim().isEmpty()) {
+                throw new RuntimeException("Empty text in API response");
+            }
+
+            // Clean up the response text
+            return text.trim();
+
+        } catch (ClassCastException e) {
+            logger.error("Unexpected response structure: {}", responseBody, e);
+            throw new RuntimeException("Unexpected API response structure");
+        } catch (Exception e) {
+            logger.error("Error extracting response text: {}", responseBody, e);
+            throw new RuntimeException("Failed to extract response text: " + e.getMessage());
+        }
     }
 }

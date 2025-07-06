@@ -1,73 +1,83 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Download, Menu, X } from 'lucide-react';
+import { Menu, X, Download, Crown } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
-  const isActive = (path) => location.pathname === path;
-
   const navigation = [
     { name: 'Home', href: '/' },
+    { name: 'Features', href: '/features' },
     { name: 'About', href: '/about' },
   ];
 
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
+  const handleInstallExtension = () => {
+    window.open('https://chrome.google.com/webstore/detail/smartreply-plus/YOUR_EXTENSION_ID', '_blank');
+  };
+
   return (
-    <header className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+    <header className="bg-white dark:bg-gray-900 shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-white/95 dark:bg-gray-900/95">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo and Brand */}
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-3">
-              <img
-                src="/logo.png"
-                alt="SmartReply+"
-                className="h-8 w-8 rounded-lg"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-              <span className="text-xl font-bold bg-gradient-blue bg-clip-text text-transparent">
-                SmartReply+
-              </span>
-            </Link>
-          </div>
+        <div className="flex justify-between items-center py-4">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-3">
+            <img
+              src="/logo.png"
+              alt="SmartReply+"
+              className="w-10 h-10 rounded-lg"
+              onError={(e) => {
+                // Fallback to gradient background with text if image fails
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center" style={{ display: 'none' }}>
+              <span className="text-white font-bold text-lg">S+</span>
+            </div>
+            <span className="text-2xl font-bold text-gray-900 dark:text-white">
+              SmartReply+
+            </span>
+          </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                    isActive(item.href)
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                      : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </div>
+          <div className="hidden md:flex items-center space-x-8">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                  isActive(item.href)
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                    : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
           </div>
 
-          {/* Desktop Actions */}
+          {/* Desktop CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <a
-              href="#"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-blue hover:opacity-90 transition-opacity duration-200"
-              onClick={(e) => {
-                e.preventDefault();
-                // TODO: Replace with actual Chrome extension link when ready
-                alert('Chrome extension coming soon!');
-              }}
+            <Link
+              to="/pro"
+              className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-lg font-semibold hover:from-yellow-500 hover:to-orange-600 transition-all duration-200 flex items-center space-x-2"
             >
-              <Download className="w-4 h-4 mr-2" />
-              Install Extension
-            </a>
+              <Crown className="w-4 h-4" />
+              <span>Pro</span>
+            </Link>
+            <button
+              onClick={handleInstallExtension}
+              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-200 flex items-center space-x-2"
+            >
+              <Download className="w-4 h-4" />
+              <span>Extension</span>
+            </button>
             <ThemeToggle />
           </div>
 
@@ -76,7 +86,7 @@ const Header = () => {
             <ThemeToggle />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
             >
               {isMenuOpen ? (
                 <X className="block h-6 w-6" />
@@ -98,26 +108,32 @@ const Header = () => {
                 to={item.href}
                 className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
                   isActive(item.href)
-                    ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                    : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 {item.name}
               </Link>
             ))}
-            <a
-              href="#"
-              className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white bg-gradient-blue hover:opacity-90 transition-opacity duration-200"
-              onClick={(e) => {
-                e.preventDefault();
+            <Link
+              to="/pro"
+              className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 transition-all duration-200"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <Crown className="w-4 h-4 mr-2 inline" />
+              Pro Features
+            </Link>
+            <button
+              onClick={() => {
+                handleInstallExtension();
                 setIsMenuOpen(false);
-                alert('Chrome extension coming soon!');
               }}
+              className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all duration-200"
             >
               <Download className="w-4 h-4 mr-2 inline" />
               Install Extension
-            </a>
+            </button>
           </div>
         </div>
       )}

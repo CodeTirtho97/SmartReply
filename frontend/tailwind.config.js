@@ -8,19 +8,15 @@ export default {
         primary: {
           50: "#eff6ff",
           100: "#dbeafe",
-          200: "#bfdbfe",
-          300: "#93c5fd",
-          400: "#60a5fa",
           500: "#3b82f6",
           600: "#2563eb",
           700: "#1d4ed8",
-          800: "#1e40af",
           900: "#1e3a8a",
         },
       },
-      backgroundImage: {
-        "gradient-primary": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        "gradient-blue": "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
+      animation: {
+        float: "float 6s ease-in-out infinite",
+        pulse: "pulse 2s infinite",
       },
     },
   },
