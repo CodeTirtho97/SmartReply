@@ -2,7 +2,7 @@ import React, { useState, useEffect} from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Zap, Shield, Clock, Star, Download, Crown, 
-  ChevronRight, Mail, Settings, Palette, BarChart3, Send, Copy 
+  ChevronRight, Mail, Settings, Palette, BarChart3, Send, Copy, AlertTriangle 
 } from 'lucide-react';
 import ExtensionPrompt from '../components/home/ExtensionPrompt';
 import DemoSection from '../components/home/DemoSection';
@@ -16,6 +16,13 @@ const Home = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [isLoadingUsage, setIsLoadingUsage] = useState(true);
+  const [usageStats, setUsageStats] = useState({
+    currentUsage: 0,
+    remainingCalls: 5,
+    maxCalls: 5,
+    canMakeCall: true,
+    rateLimitEnabled: true
+  });
 
   const tones = [
     { value: 'professional', label: 'Professional', color: 'bg-blue-500', example: 'Thank you for your email. I will review this matter and provide you with a comprehensive response by end of business day.' },
@@ -39,7 +46,8 @@ const Home = () => {
   useEffect(() => {
     const fetchUsageCount = async () => {
       try {
-        const response = await fetch('/api/usage-count', {
+        // Use the separate rate limiting API
+        const response = await fetch('/api/rate-limit/status', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -48,7 +56,14 @@ const Home = () => {
 
         if (response.ok) {
           const data = await response.json();
-          setDailyUsage(data.dailyUsage || 0);
+          setUsageStats({
+            currentUsage: data.currentUsage || 0,
+            remainingCalls: data.remainingCalls || 5,
+            maxCalls: data.maxCalls || 5,
+            canMakeCall: data.canMakeCall !== undefined ? data.canMakeCall : true,
+            rateLimitEnabled: true
+          });
+          setDailyUsage(data.currentUsage || 0);
         } else {
           console.error('Failed to fetch usage count');
         }
@@ -68,7 +83,8 @@ const Home = () => {
       return;
     }
 
-    if (dailyUsage >= 5) {
+    // Check local usage stats before making API call
+    if (!usageStats.canMakeCall || dailyUsage >= usageStats.maxCalls) {
       setShowExtensionPrompt(true);
       return;
     }
@@ -78,45 +94,64 @@ const Home = () => {
     setGeneratedReply('');
 
     try {
-      // Make actual API call to your backend
-      const response = await fetch('/api/generate-reply', {
+      // First, consume a rate limit token
+      const rateLimitResponse = await fetch('/api/rate-limit/consume', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!rateLimitResponse.ok) {
+        const rateLimitData = await rateLimitResponse.json();
+        if (rateLimitResponse.status === 429) {
+          setDailyUsage(usageStats.maxCalls);
+          setUsageStats(prev => ({
+            ...prev,
+            currentUsage: prev.maxCalls,
+            remainingCalls: 0,
+            canMakeCall: false
+          }));
+          setShowExtensionPrompt(true);
+          throw new Error(rateLimitData.message || 'Daily limit reached!');
+        }
+        throw new Error(rateLimitData.message || 'Rate limit check failed');
+      }
+
+      const rateLimitData = await rateLimitResponse.json();
+
+      // Now make the actual API call to generate reply
+      const response = await fetch('/api/email/generate-reply', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          emailBody: emailInput.trim(),
+          emailContent: emailInput.trim(),
           tone: selectedTone,
-          // Add any other parameters your backend expects
+          customPrompt: "",
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        // Handle rate limit specifically
-        if (response.status === 429) {
-          setDailyUsage(5); // Set to limit
-          setShowExtensionPrompt(true);
-          throw new Error(errorData.message || 'Daily limit reached. Install extension for more replies!');
-        }
-        
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      
-      // Assuming your backend returns { reply: "generated reply text", dailyUsage: number }
-      // Adjust this based on your actual API response structure
-      if (data.reply) {
-        setGeneratedReply(data.reply);
-        // Update usage count from backend response
-        if (typeof data.dailyUsage === 'number') {
-          setDailyUsage(data.dailyUsage);
-        } else {
-          // Fallback: increment local count if backend doesn't return it
-          setDailyUsage(prev => prev + 1);
-        }
+      // Handle successful response
+      if (data.generatedReply || data.reply) {
+        setGeneratedReply(data.generatedReply || data.reply);
+        
+        // Update usage stats from rate limit response
+        setUsageStats({
+          currentUsage: rateLimitData.currentUsage || 0,
+          remainingCalls: rateLimitData.remainingCalls || 0,
+          maxCalls: rateLimitData.maxCalls || 5,
+          canMakeCall: rateLimitData.canMakeCall !== undefined ? rateLimitData.canMakeCall : true,
+          rateLimitEnabled: true
+        });
+        setDailyUsage(rateLimitData.currentUsage || 0);
       } else {
         throw new Error('No reply generated from server');
       }
@@ -124,10 +159,6 @@ const Home = () => {
     } catch (error) {
       console.error('Error generating reply:', error);
       setError(error.message || 'Failed to generate reply. Please try again.');
-      
-      // Optional: Fallback to example if API fails (remove this in production)
-      // const selectedToneObj = tones.find(t => t.value === selectedTone);
-      // setGeneratedReply(selectedToneObj.example);
       
     } finally {
       setIsGenerating(false);
@@ -297,27 +328,57 @@ const Home = () => {
                 </div>
               </div>
 
-              {/* Usage Counter */}
+              {/* Enhanced Usage Counter */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Daily Usage
+                    Daily API Usage
                   </span>
-                  <span className="text-sm text-gray-500">
-                    {isLoadingUsage ? 'Loading...' : `${dailyUsage}/5 used`}
+                  <span className={`text-sm font-semibold ${
+                    usageStats.remainingCalls === 0 ? 'text-red-600' : 
+                    usageStats.remainingCalls <= 2 ? 'text-yellow-600' : 'text-green-600'
+                  }`}>
+                    {isLoadingUsage ? 'Loading...' : `${dailyUsage}/${usageStats.maxCalls} used`}
                   </span>
                 </div>
-                <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300" 
-                    style={{width: `${isLoadingUsage ? 0 : (dailyUsage/5) * 100}%`}}
+                    className={`h-full transition-all duration-500 ${
+                      usageStats.remainingCalls === 0 ? 'bg-gradient-to-r from-red-500 to-red-600' :
+                      usageStats.remainingCalls <= 2 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                      'bg-gradient-to-r from-blue-500 to-purple-500'
+                    }`}
+                    style={{width: `${isLoadingUsage ? 0 : (dailyUsage/usageStats.maxCalls) * 100}%`}}
                   ></div>
                 </div>
-                {dailyUsage >= 5 && (
-                  <p className="text-sm text-red-600 mt-2">
-                    Daily limit reached! Install Chrome Extension for 25 daily replies.
-                  </p>
+                
+                {/* Usage Status Messages */}
+                {!isLoadingUsage && (
+                  <div className="mt-3 space-y-2">
+                    {usageStats.remainingCalls === 0 ? (
+                      <div className="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                        <div className="flex items-center space-x-2 text-red-700 dark:text-red-300">
+                          <AlertTriangle className="w-4 h-4" />
+                          <span className="text-sm font-medium">Daily Limit Reached!</span>
+                        </div>
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                          Install Chrome Extension for {usageStats.maxCalls * 5} daily replies or try again tomorrow.
+                        </p>
+                      </div>
+                    ) : usageStats.remainingCalls <= 2 ? (
+                      <div className="p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                        <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                          <strong>{usageStats.remainingCalls} calls remaining</strong> - Consider installing our extension for unlimited usage!
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {usageStats.remainingCalls} calls remaining today • Resets at midnight UTC
+                      </p>
+                    )}
+                  </div>
                 )}
+
                 {isLoadingUsage && (
                   <p className="text-sm text-gray-500 mt-2">
                     Checking your daily usage...
@@ -328,17 +389,23 @@ const Home = () => {
               {/* Generate Button */}
               <button
                 onClick={handleGenerateReply}
-                disabled={isGenerating}
+                disabled={isGenerating || !usageStats.canMakeCall}
                 className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all flex items-center justify-center space-x-2 ${
-                  isGenerating
+                  isGenerating || !usageStats.canMakeCall
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg'
+                    : 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
                 }`}
+                title={!usageStats.canMakeCall ? 'Daily limit reached' : ''}
               >
                 {isGenerating ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                     <span>Generating Reply...</span>
+                  </>
+                ) : !usageStats.canMakeCall ? (
+                  <>
+                    <AlertTriangle className="w-5 h-5" />
+                    <span>Daily Limit Reached</span>
                   </>
                 ) : (
                   <>
@@ -346,7 +413,7 @@ const Home = () => {
                     <span>Generate Smart Reply</span>
                   </>
                 )}
-              </button>
+              </button>    
             </div>
 
             {/* Output Section */}
