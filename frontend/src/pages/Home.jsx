@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import ExtensionPrompt from '../components/home/ExtensionPrompt';
 import DemoSection from '../components/home/DemoSection';
+import { emailService } from '../api'; // Import emailService from api.js
 
 const Home = () => {
   const [showExtensionPrompt, setShowExtensionPrompt] = useState(false);
@@ -46,27 +47,15 @@ const Home = () => {
   useEffect(() => {
     const fetchUsageCount = async () => {
       try {
-        // Use the separate rate limiting API
-        const response = await fetch('/api/rate-limit/status', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        const data = await emailService.getUsage();
+        setUsageStats({
+          currentUsage: data.currentUsage || 0,
+          remainingCalls: data.remainingCalls || 5,
+          maxCalls: data.maxCalls || 5,
+          canMakeCall: data.canMakeCall !== undefined ? data.canMakeCall : true,
+          rateLimitEnabled: true
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          setUsageStats({
-            currentUsage: data.currentUsage || 0,
-            remainingCalls: data.remainingCalls || 5,
-            maxCalls: data.maxCalls || 5,
-            canMakeCall: data.canMakeCall !== undefined ? data.canMakeCall : true,
-            rateLimitEnabled: true
-          });
-          setDailyUsage(data.currentUsage || 0);
-        } else {
-          console.error('Failed to fetch usage count');
-        }
+        setDailyUsage(data.currentUsage || 0);
       } catch (error) {
         console.error('Error fetching usage count:', error);
       } finally {
@@ -94,64 +83,26 @@ const Home = () => {
     setGeneratedReply('');
 
     try {
-      // First, consume a rate limit token
-      const rateLimitResponse = await fetch('/api/rate-limit/consume', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const data = await emailService.generateReply({
+        emailContent: emailInput.trim(),
+        tone: selectedTone,
+        customPrompt: "",
       });
-
-      if (!rateLimitResponse.ok) {
-        const rateLimitData = await rateLimitResponse.json();
-        if (rateLimitResponse.status === 429) {
-          setDailyUsage(usageStats.maxCalls);
-          setUsageStats(prev => ({
-            ...prev,
-            currentUsage: prev.maxCalls,
-            remainingCalls: 0,
-            canMakeCall: false
-          }));
-          setShowExtensionPrompt(true);
-          throw new Error(rateLimitData.message || 'Daily limit reached!');
-        }
-        throw new Error(rateLimitData.message || 'Rate limit check failed');
-      }
-
-      const rateLimitData = await rateLimitResponse.json();
-
-      // Now make the actual API call to generate reply
-      const response = await fetch('/api/email/generate-reply', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          emailContent: emailInput.trim(),
-          tone: selectedTone,
-          customPrompt: "",
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || data.error || `HTTP error! status: ${response.status}`);
-      }
 
       // Handle successful response
       if (data.generatedReply || data.reply) {
         setGeneratedReply(data.generatedReply || data.reply);
         
-        // Update usage stats from rate limit response
+        // Update usage stats by fetching fresh data
+        const usageData = await emailService.getUsage();
         setUsageStats({
-          currentUsage: rateLimitData.currentUsage || 0,
-          remainingCalls: rateLimitData.remainingCalls || 0,
-          maxCalls: rateLimitData.maxCalls || 5,
-          canMakeCall: rateLimitData.canMakeCall !== undefined ? rateLimitData.canMakeCall : true,
+          currentUsage: usageData.currentUsage || 0,
+          remainingCalls: usageData.remainingCalls || 0,
+          maxCalls: usageData.maxCalls || 5,
+          canMakeCall: usageData.canMakeCall !== undefined ? usageData.canMakeCall : true,
           rateLimitEnabled: true
         });
-        setDailyUsage(rateLimitData.currentUsage || 0);
+        setDailyUsage(usageData.currentUsage || 0);
       } else {
         throw new Error('No reply generated from server');
       }
@@ -160,6 +111,16 @@ const Home = () => {
       console.error('Error generating reply:', error);
       setError(error.message || 'Failed to generate reply. Please try again.');
       
+      if (error.message.includes('Daily limit reached')) {
+        setDailyUsage(usageStats.maxCalls);
+        setUsageStats(prev => ({
+          ...prev,
+          currentUsage: prev.maxCalls,
+          remainingCalls: 0,
+          canMakeCall: false
+        }));
+        setShowExtensionPrompt(true);
+      }
     } finally {
       setIsGenerating(false);
     }

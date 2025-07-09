@@ -39,7 +39,7 @@ api.interceptors.response.use(
 export const emailService = {
   generateReply: async (emailData) => {
     try {
-      // FIXED: Changed from "/email/generate" to "/email/generate-reply"
+      // FIXED: Using correct endpoint
       const response = await api.post("/email/generate-reply", emailData);
       return response.data;
     } catch (error) {
@@ -58,7 +58,7 @@ export const emailService = {
 
   getUsage: async () => {
     try {
-      // FIXED: Changed from "/email/usage" to "/rate-limit/check"
+      // FIXED: Using correct endpoint
       const response = await api.get("/rate-limit/check");
       return {
         currentUsage: response.data.currentUsage || 0,
@@ -74,6 +74,17 @@ export const emailService = {
         maxCalls: 5,
         canMakeCall: true,
       };
+    }
+  },
+
+  // ADDED: Rate limit consumption
+  consumeRateLimit: async () => {
+    // eslint-disable-next-line no-useless-catch
+    try {
+      const response = await api.post("/rate-limit/consume");
+      return response.data;
+    } catch (error) {
+      throw error;
     }
   },
 
