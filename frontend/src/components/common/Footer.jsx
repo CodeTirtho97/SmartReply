@@ -63,14 +63,14 @@ const Footer = () => {
                   Features
                 </Link>
               </li>
-              <li>
+              {/* <li>
                 <Link
                   to="/pro"
                   className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm transition-colors duration-200"
                 >
                   Pro Features
                 </Link>
-              </li>
+              </li> */}
               <li>
                 <Link
                   to="/privacy-policy"
@@ -79,7 +79,7 @@ const Footer = () => {
                   Privacy Policy
                 </Link>
               </li>
-              <li>
+              {/* <li>
                 <a
                   href="#"
                   className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm transition-colors duration-200"
@@ -90,7 +90,7 @@ const Footer = () => {
                 >
                   Chrome Extension
                 </a>
-              </li>
+              </li> */}
             </ul>
           </div>
 
