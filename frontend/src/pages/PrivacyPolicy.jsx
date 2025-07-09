@@ -2,7 +2,7 @@ import React from 'react';
 import { Shield, Lock, Eye, Database, Server, Mail, AlertTriangle } from 'lucide-react';
 
 const PrivacyPolicy = () => {
-  const lastUpdated = "January 15, 2025";
+  const lastUpdated = "July 10, 2025";
 
   const sections = [
     {
@@ -168,7 +168,7 @@ const PrivacyPolicy = () => {
               Introduction
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              SmartReply+ ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our Chrome extension for Gmail.
+              SmartReply+ is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our Chrome extension for Gmail.
             </p>
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-start space-x-3">
@@ -224,7 +224,7 @@ const PrivacyPolicy = () => {
           </div>
 
           {/* Contact Information */}
-          <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-2xl p-8 mt-12">
+          {/* <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-2xl p-8 mt-12">
             <div className="text-center">
               <Mail className="w-12 h-12 text-blue-400 mx-auto mb-4" />
               <h2 className="text-2xl font-bold mb-4">Questions About Privacy?</h2>
@@ -245,7 +245,7 @@ const PrivacyPolicy = () => {
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Policy Updates */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg mt-8">
