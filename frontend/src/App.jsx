@@ -6,8 +6,8 @@ import Footer from './components/common/Footer';
 import Home from './pages/Home';
 import Features from './pages/Features';
 import About from './pages/About';
-// import Contact from './pages/Contact';
 import Pro from './pages/Pro';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import './styles/extension.css';
 
 function App() {
@@ -21,8 +21,8 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/features" element={<Features />} />
               <Route path="/about" element={<About />} />
-              {/* <Route path="/contact" element={<Contact />} /> */}
               <Route path="/pro" element={<Pro />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             </Routes>
           </main>
           <Footer />
