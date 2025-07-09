@@ -39,7 +39,7 @@ api.interceptors.response.use(
 export const emailService = {
   generateReply: async (emailData) => {
     try {
-      const response = await api.post("/email/generate", emailData);
+      const response = await api.post("/email/generate-reply", emailData);
       return response.data;
     } catch (error) {
       if (error.response?.status === 429) {
@@ -57,7 +57,7 @@ export const emailService = {
 
   getUsage: async () => {
     try {
-      const response = await api.get("/email/usage");
+      const response = await api.get("/rate-limit/check");
       return response.data;
     } catch (error) {
       console.error("Error fetching usage:", error);
