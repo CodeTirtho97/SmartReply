@@ -1,15 +1,3 @@
 {
-    "redirects": [
-      {
-        "source": "/pro",
-        "destination": "/pro",
-        "permanent": false
-      }
-    ],
-    "rewrites": [
-      {
-        "source": "/((?!api/.*).*)",
-        "destination": "/index.html"
-      }
-    ]
-  }
+  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
+}
