@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "/api", // This will proxy to your Spring Boot backend
+  baseURL: "http://13.127.111.111:8080/api",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
