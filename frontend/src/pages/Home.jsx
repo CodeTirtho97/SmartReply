@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import ExtensionPrompt from '../components/home/ExtensionPrompt';
 import DemoSection from '../components/home/DemoSection';
-import { emailService } from '../api'; // Import emailService from api.js
+import { emailService } from '../services/api';
 
 const Home = () => {
   const [showExtensionPrompt, setShowExtensionPrompt] = useState(false);
