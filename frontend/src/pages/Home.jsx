@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import ExtensionPrompt from '../components/home/ExtensionPrompt';
 import DemoSection from '../components/home/DemoSection';
-import { emailService } from '../services/api';
+import { emailService } from '../services/api'; // ADDED: Import emailService
 
 const Home = () => {
   const [showExtensionPrompt, setShowExtensionPrompt] = useState(false);
@@ -43,10 +43,11 @@ const Home = () => {
     window.open('https://chrome.google.com/webstore/detail/smartreply-plus/YOUR_EXTENSION_ID', '_blank');
   };
 
-  // Fetch current usage count on component mount
+  // FIXED: Fetch current usage count using emailService
   useEffect(() => {
     const fetchUsageCount = async () => {
       try {
+        // FIXED: Use emailService instead of direct fetch
         const data = await emailService.getUsage();
         setUsageStats({
           currentUsage: data.currentUsage || 0,
@@ -58,6 +59,15 @@ const Home = () => {
         setDailyUsage(data.currentUsage || 0);
       } catch (error) {
         console.error('Error fetching usage count:', error);
+        // Set default values on error
+        setUsageStats({
+          currentUsage: 0,
+          remainingCalls: 5,
+          maxCalls: 5,
+          canMakeCall: true,
+          rateLimitEnabled: true
+        });
+        setDailyUsage(0);
       } finally {
         setIsLoadingUsage(false);
       }
@@ -66,6 +76,7 @@ const Home = () => {
     fetchUsageCount();
   }, []);
 
+  // FIXED: Use emailService for generating replies
   const handleGenerateReply = async () => {
     if (!emailInput.trim()) {
       alert('Please paste an email to reply to!');
@@ -83,6 +94,7 @@ const Home = () => {
     setGeneratedReply('');
 
     try {
+      // FIXED: Use emailService instead of direct fetch
       const data = await emailService.generateReply({
         emailContent: emailInput.trim(),
         tone: selectedTone,
@@ -90,19 +102,19 @@ const Home = () => {
       });
 
       // Handle successful response
-      if (data.generatedReply || data.reply) {
-        setGeneratedReply(data.generatedReply || data.reply);
+      if (data.reply || data.generatedReply) {
+        setGeneratedReply(data.reply || data.generatedReply);
         
-        // Update usage stats by fetching fresh data
-        const usageData = await emailService.getUsage();
+        // Refresh usage stats after successful generation
+        const updatedUsage = await emailService.getUsage();
         setUsageStats({
-          currentUsage: usageData.currentUsage || 0,
-          remainingCalls: usageData.remainingCalls || 0,
-          maxCalls: usageData.maxCalls || 5,
-          canMakeCall: usageData.canMakeCall !== undefined ? usageData.canMakeCall : true,
+          currentUsage: updatedUsage.currentUsage || 0,
+          remainingCalls: updatedUsage.remainingCalls || 0,
+          maxCalls: updatedUsage.maxCalls || 5,
+          canMakeCall: updatedUsage.canMakeCall !== undefined ? updatedUsage.canMakeCall : true,
           rateLimitEnabled: true
         });
-        setDailyUsage(usageData.currentUsage || 0);
+        setDailyUsage(updatedUsage.currentUsage || 0);
       } else {
         throw new Error('No reply generated from server');
       }
@@ -111,16 +123,18 @@ const Home = () => {
       console.error('Error generating reply:', error);
       setError(error.message || 'Failed to generate reply. Please try again.');
       
-      if (error.message.includes('Daily limit reached')) {
-        setDailyUsage(usageStats.maxCalls);
+      // If it's a rate limit error, update the UI accordingly
+      if (error.message.includes('Daily limit') || error.message.includes('rate limit')) {
         setUsageStats(prev => ({
           ...prev,
           currentUsage: prev.maxCalls,
           remainingCalls: 0,
           canMakeCall: false
         }));
+        setDailyUsage(usageStats.maxCalls);
         setShowExtensionPrompt(true);
       }
+      
     } finally {
       setIsGenerating(false);
     }
