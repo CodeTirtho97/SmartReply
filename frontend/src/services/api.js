@@ -1,8 +1,8 @@
 import axios from "axios";
 
-// Use relative URL - Vite proxy will handle routing to AWS backend
+// TEMPORARY: Use direct backend URL to bypass proxy issues
 const api = axios.create({
-  baseURL: "/api", // This will be proxied to http://13.127.111.111:8080/api
+  baseURL: "http://13.127.111.111:8080/api", // Direct to AWS backend
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
@@ -79,10 +79,24 @@ export const emailService = {
   generateReply: async (emailData) => {
     try {
       console.log("Generating reply with data:", emailData);
-      const response = await api.post("/email/generate-reply", emailData);
+
+      // Ensure the request format matches backend expectations
+      const requestBody = {
+        emailContent: emailData.emailContent,
+        tone: emailData.tone || "professional",
+        customPrompt: emailData.customPrompt || "",
+      };
+
+      console.log("Sending formatted request:", requestBody);
+      const response = await api.post("/email/generate-reply", requestBody);
       return response.data;
     } catch (error) {
       console.error("Generate reply error:", error);
+      console.error("Error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
       throw error;
     }
   },
