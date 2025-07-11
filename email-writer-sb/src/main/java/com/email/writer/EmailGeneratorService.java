@@ -38,9 +38,9 @@ public class EmailGeneratorService {
                     request.getTone(), request.getCustomPrompt());
 
             String prompt = buildDynamicPrompt(request);
-            String fullUrl = apiUrl + "?key=" + apiKey;
+            String fullUrl = buildApiUrl(); // Fixed method
 
-            logger.info("Attempting to call Gemini API with URL: {}", apiUrl);
+            logger.info("Attempting to call Gemini API with URL: {}", cleanUrlForLogging(fullUrl));
             logger.debug("Generated prompt: {}", prompt);
 
             HttpHeaders headers = new HttpHeaders();
@@ -49,7 +49,7 @@ public class EmailGeneratorService {
             Map<String, Object> requestBody = createGeminiRequestBody(prompt);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-            logger.info("Making request to: {}", fullUrl.replace(apiKey, "[REDACTED]"));
+            logger.info("Making request to: {}", cleanUrlForLogging(fullUrl));
             ResponseEntity<Map> response = restTemplate.exchange(fullUrl, HttpMethod.POST, entity, Map.class);
             logger.info("Received response with status: {}", response.getStatusCode());
 
@@ -59,6 +59,21 @@ public class EmailGeneratorService {
             logger.error("Error generating email reply", e);
             throw new RuntimeException("Failed to generate email reply: " + e.getMessage());
         }
+    }
+
+    // Fixed URL construction method
+    private String buildApiUrl() {
+        // Remove any existing query parameters from apiUrl to avoid duplicates
+        String cleanUrl = apiUrl.contains("?") ? apiUrl.split("\\?")[0] : apiUrl;
+        String fullUrl = cleanUrl + "?key=" + apiKey;
+
+        logger.debug("Built API URL: {}", cleanUrlForLogging(fullUrl));
+        return fullUrl;
+    }
+
+    // Helper method to clean URL for logging (hide API key)
+    private String cleanUrlForLogging(String url) {
+        return url.replaceAll("key=[^&]*", "key=[REDACTED]");
     }
 
     private String buildDynamicPrompt(EmailRequest request) {
