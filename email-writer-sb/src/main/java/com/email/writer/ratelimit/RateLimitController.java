@@ -13,7 +13,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/rate-limit")
-@CrossOrigin(origins = "*")
+@CrossOrigin(
+        origins = "*",
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS},
+        allowedHeaders = "*"
+)
 public class RateLimitController {
 
     private static final Logger logger = LoggerFactory.getLogger(RateLimitController.class);
@@ -267,5 +271,15 @@ public class RateLimitController {
         debug.put("allHeaders", headers);
 
         return ResponseEntity.ok(debug);
+    }
+
+    @RequestMapping(method = RequestMethod.OPTIONS)
+    public ResponseEntity<Void> handleOptions() {
+        return ResponseEntity.ok()
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                .header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+                .header("Access-Control-Max-Age", "3600")
+                .build();
     }
 }

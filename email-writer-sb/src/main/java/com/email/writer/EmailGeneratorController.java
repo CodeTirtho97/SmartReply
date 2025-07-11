@@ -14,7 +14,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/email")
-@CrossOrigin(origins = "*") // Enable CORS for frontend
+@CrossOrigin(
+        origins = "*",
+        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS},
+        allowedHeaders = "*"
+)
 public class EmailGeneratorController {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailGeneratorController.class);
@@ -153,5 +157,15 @@ public class EmailGeneratorController {
         }
 
         return request.getRemoteAddr();
+    }
+
+    @RequestMapping(method = RequestMethod.OPTIONS)
+    public ResponseEntity<Void> handleOptions() {
+        return ResponseEntity.ok()
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                .header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+                .header("Access-Control-Max-Age", "3600")
+                .build();
     }
 }
