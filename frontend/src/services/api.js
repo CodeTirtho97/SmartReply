@@ -99,7 +99,6 @@ export const emailService = {
     try {
       console.log("Generating reply with data:", emailData);
 
-      // Ensure the request format matches backend expectations
       const requestBody = {
         emailContent: emailData.emailContent,
         tone: emailData.tone || "professional",
@@ -108,9 +107,24 @@ export const emailService = {
 
       console.log("Sending formatted request:", requestBody);
       const response = await api.post("/email/generate-reply", requestBody);
+
+      // The response now includes usage information automatically
+      console.log(
+        "Reply generated successfully with usage info:",
+        response.data
+      );
       return response.data;
     } catch (error) {
       console.error("Generate reply error:", error);
+
+      // Handle rate limit errors specifically
+      if (error.response?.status === 429) {
+        throw new Error(
+          error.response.data.message ||
+            "Rate limit exceeded. Please try again tomorrow."
+        );
+      }
+
       throw error;
     }
   },
@@ -118,7 +132,9 @@ export const emailService = {
   getUsage: async () => {
     try {
       console.log("Fetching usage stats...");
-      const response = await api.get("/rate-limit/check");
+
+      // Use the new dedicated usage endpoint
+      const response = await api.get("/email/usage");
       console.log("Usage response:", response.data);
 
       return {
@@ -126,16 +142,18 @@ export const emailService = {
         remainingCalls: response.data.remainingCalls || 5,
         maxCalls: response.data.maxCalls || 5,
         canMakeCall: response.data.canMakeCall !== false,
+        success: response.data.success,
       };
     } catch (error) {
       console.error("Error fetching usage:", error);
 
-      // Return default values when rate limit endpoint fails
+      // Return default values when usage endpoint fails
       return {
         currentUsage: 0,
         remainingCalls: 5,
         maxCalls: 5,
         canMakeCall: true,
+        success: false,
       };
     }
   },
@@ -152,23 +170,16 @@ export const emailService = {
     }
   },
 
-  // Test connection endpoint
-  testConnection: async () => {
+  // Test the rate limiting system
+  testRateLimit: async () => {
     try {
-      console.log("Testing connection to backend...");
-      const response = await api.get("/email/health");
-      return {
-        success: true,
-        data: response.data,
-        url: getApiBaseURL(),
-      };
+      console.log("Testing rate limit...");
+      const response = await api.get("/rate-limit/check");
+      console.log("Rate limit test response:", response.data);
+      return response.data;
     } catch (error) {
-      console.error("Connection test failed:", error);
-      return {
-        success: false,
-        error: error.message,
-        url: getApiBaseURL(),
-      };
+      console.error("Rate limit test failed:", error);
+      throw error;
     }
   },
 };

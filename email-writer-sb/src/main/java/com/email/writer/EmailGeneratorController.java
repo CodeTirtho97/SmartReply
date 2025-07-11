@@ -1,5 +1,6 @@
 package com.email.writer;
 
+import com.email.writer.ratelimit.RateLimitingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,9 @@ public class EmailGeneratorController {
     @Autowired
     private EmailGeneratorService emailGeneratorService;
 
+    @Autowired
+    private RateLimitingService rateLimitingService;
+
     @PostMapping("/generate-reply")
     public ResponseEntity<Map<String, Object>> generateEmailReply(
             @Valid @RequestBody EmailRequest request,
@@ -41,6 +45,21 @@ public class EmailGeneratorController {
         Map<String, Object> response = new HashMap<>();
 
         try {
+            // Check rate limit BEFORE processing
+            if (!rateLimitingService.isAllowed(clientIp)) {
+                logger.warn("Rate limit exceeded for IP: {}", clientIp);
+
+                response.put("success", false);
+                response.put("error", "Rate limit exceeded");
+                response.put("message", "You've reached your daily limit of 5 API calls. Please try again tomorrow.");
+
+                // Add current usage info
+                Map<String, Object> usageInfo = rateLimitingService.getUsageInfo(clientIp);
+                response.putAll(usageInfo);
+
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+            }
+
             // Validate request
             if (!request.isValid()) {
                 logger.warn("Invalid request received: {}", request);
@@ -55,6 +74,10 @@ public class EmailGeneratorController {
                     request.getSafeTone(),
                     !request.getSafeCustomPrompt().isEmpty());
 
+            // Record usage AFTER validation but BEFORE generation
+            rateLimitingService.recordUsage(clientIp);
+            logger.info("Rate limit consumed for IP: {}", clientIp);
+
             // Generate the reply
             String generatedReply = emailGeneratorService.generateEmailReply(request);
 
@@ -65,11 +88,15 @@ public class EmailGeneratorController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
             }
 
-            // Success response
+            // Success response with usage info
             response.put("success", true);
             response.put("reply", generatedReply.trim());
             response.put("tone", request.getSafeTone());
             response.put("timestamp", System.currentTimeMillis());
+
+            // Add current usage information
+            Map<String, Object> usageInfo = rateLimitingService.getUsageInfo(clientIp);
+            response.putAll(usageInfo);
 
             logger.info("Successfully generated email reply for IP: {} with tone: '{}'",
                     clientIp, request.getSafeTone());
@@ -129,6 +156,32 @@ public class EmailGeneratorController {
         response.put("default", "professional");
 
         return ResponseEntity.ok(response);
+    }
+
+    // New endpoint to get usage info without consuming
+    @GetMapping("/usage")
+    public ResponseEntity<Map<String, Object>> getUsageInfo(HttpServletRequest request) {
+        String clientIp = getClientIpAddress(request);
+
+        try {
+            Map<String, Object> response = rateLimitingService.getUsageInfo(clientIp);
+            response.put("success", true);
+            response.put("clientIp", clientIp); // For debugging
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error getting usage info for IP: {}", clientIp, e);
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "Unable to get usage info");
+            errorResponse.put("currentUsage", 0);
+            errorResponse.put("remainingCalls", 5);
+            errorResponse.put("maxCalls", 5);
+            errorResponse.put("canMakeCall", true);
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 
     // Exception handler for validation errors
