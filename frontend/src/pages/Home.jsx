@@ -343,7 +343,7 @@ const Home = () => {
                     ) : usageStats.remainingCalls <= 2 ? (
                       <div className="p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                         <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                          <strong>{usageStats.remainingCalls} calls remaining</strong> - Consider installing our extension for unlimited usage!
+                          <strong>{usageStats.remainingCalls} calls remaining</strong> - Consider installing our extension for 5X usage!
                         </p>
                       </div>
                     ) : (
