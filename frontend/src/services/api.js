@@ -1,13 +1,27 @@
 import axios from "axios";
 
-// TEMPORARY: Use direct backend URL to bypass proxy issues
+// Get API URL from environment variables or use default
+const getApiBaseURL = () => {
+  // Check for Vite environment variables
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
+  // Default to production Render backend
+  return "https://smartreply-v1-backend.onrender.com/api";
+};
+
 const api = axios.create({
-  baseURL: "http://13.127.111.111:8080/api", // Direct to AWS backend
-  timeout: 30000,
+  baseURL: getApiBaseURL(),
+  timeout: import.meta.env.VITE_API_TIMEOUT || 30000,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+// Log the API URL being used
+console.log("API Base URL:", getApiBaseURL());
+console.log("Environment:", import.meta.env.MODE);
 
 // Request interceptor
 api.interceptors.request.use(
@@ -15,7 +29,9 @@ api.interceptors.request.use(
     console.log(
       "Making API request:",
       config.method?.toUpperCase(),
-      config.url
+      config.url,
+      "to",
+      config.baseURL
     );
     return config;
   },
@@ -40,11 +56,14 @@ api.interceptors.response.use(
       data: error.response?.data,
       url: error.config?.url,
       method: error.config?.method,
+      baseURL: error.config?.baseURL,
     });
 
     // Handle specific error types
     if (error.code === "ECONNABORTED") {
-      throw new Error("Request timeout. Please try again.");
+      throw new Error(
+        "Request timeout. The server might be sleeping. Please try again in a moment."
+      );
     }
 
     if (error.code === "ERR_NETWORK") {
@@ -53,7 +72,7 @@ api.interceptors.response.use(
 
     if (error.response?.status === 0) {
       throw new Error(
-        "Network error. Please check if the backend server is running."
+        "Network error. The backend server might be starting up. Please wait a moment and try again."
       );
     }
 
@@ -92,11 +111,6 @@ export const emailService = {
       return response.data;
     } catch (error) {
       console.error("Generate reply error:", error);
-      console.error("Error details:", {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-      });
       throw error;
     }
   },
@@ -135,6 +149,26 @@ export const emailService = {
     } catch (error) {
       console.error("Health check failed:", error);
       throw error;
+    }
+  },
+
+  // Test connection endpoint
+  testConnection: async () => {
+    try {
+      console.log("Testing connection to backend...");
+      const response = await api.get("/email/health");
+      return {
+        success: true,
+        data: response.data,
+        url: getApiBaseURL(),
+      };
+    } catch (error) {
+      console.error("Connection test failed:", error);
+      return {
+        success: false,
+        error: error.message,
+        url: getApiBaseURL(),
+      };
     }
   },
 };
