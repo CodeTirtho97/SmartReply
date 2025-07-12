@@ -9,10 +9,13 @@
 ![AI Powered](https://img.shields.io/badge/AI%20Powered-Gemini%20AI-purple?style=for-the-badge&logo=google&logoColor=white)
 
 ### **One Click. Smart Reply.**
+  <a href="https://smart-reply-tirth-v1.vercel.app/" target="_blank">
+    <img src="https://img.shields.io/badge/LIVE_DEMO-Check_it_out!-FF5757?style=for-the-badge&logo=vercel" alt="Live Demo" />
+  </a>
 
 <h3>🎯 An AI-powered Gmail Chrome extension that generates intelligent email replies using Gemini AI</h3>
 <h4>Transform your email productivity with instant, contextually appropriate responses</h4>
-
+ 
 <br>
 
 <img width="1280" height="800" alt="SmartReply+ Brand Image" src="https://github.com/user-attachments/assets/ab32f81a-3e6c-410f-affd-445e57ae5602" />
@@ -21,7 +24,7 @@
 
 ## 🌟 **Ready to Transform Your Email Experience?**
 
-<a href="">
+<a href="#">
   <img src="https://img.shields.io/badge/🚀%20Try%20SmartReply+-Chrome%20Extension-blue?style=for-the-badge&logo=google-chrome&logoColor=white&labelColor=4285F4&color=34A853" alt="SmartReply+ Chrome Extension" height="50"/>
 </a>
 
