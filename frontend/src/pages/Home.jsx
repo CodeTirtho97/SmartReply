@@ -2,11 +2,12 @@ import React, { useState, useEffect} from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Zap, Shield, Clock, Star, Download, Crown, 
-  ChevronRight, Mail, Settings, Palette, BarChart3, Send, Copy, AlertTriangle 
+  ChevronRight, Mail, Settings, Palette, BarChart3, Send, Copy, AlertTriangle, Sparkles 
 } from 'lucide-react';
 import ExtensionPrompt from '../components/home/ExtensionPrompt';
 import DemoSection from '../components/home/DemoSection';
-import { emailService } from '../services/api'; // ADDED: Import emailService
+import { emailService } from '../services/api';
+import SmartLoadingButton from '../components/SmartLoadingButton';
 
 const Home = () => {
   const [showExtensionPrompt, setShowExtensionPrompt] = useState(false);
@@ -362,33 +363,23 @@ const Home = () => {
               </div>
 
               {/* Generate Button */}
-              <button
-                onClick={handleGenerateReply}
-                disabled={isGenerating || !usageStats.canMakeCall}
-                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all flex items-center justify-center space-x-2 ${
-                  isGenerating || !usageStats.canMakeCall
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
-                }`}
-                title={!usageStats.canMakeCall ? 'Daily limit reached' : ''}
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Generating Reply...</span>
-                  </>
-                ) : !usageStats.canMakeCall ? (
-                  <>
-                    <AlertTriangle className="w-5 h-5" />
-                    <span>Daily Limit Reached</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-5 h-5" />
-                    <span>Generate Smart Reply</span>
-                  </>
-                )}
-              </button>    
+              <SmartLoadingButton
+  onClick={handleGenerateReply}
+  disabled={!usageStats.canMakeCall}
+  isLoading={isGenerating}
+  icon={Send}
+  className="text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+  title={!usageStats.canMakeCall ? 'Daily limit reached' : ''}
+>
+  {!usageStats.canMakeCall ? (
+    <div className="flex items-center space-x-2">
+      <AlertTriangle className="w-5 h-5" />
+      <span>Daily Limit Reached</span>
+    </div>
+  ) : (
+    'Generate Smart Reply'
+  )}
+</SmartLoadingButton>  
             </div>
 
             {/* Output Section */}
