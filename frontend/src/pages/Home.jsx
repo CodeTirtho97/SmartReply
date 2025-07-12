@@ -7,7 +7,7 @@ import {
 import ExtensionPrompt from '../components/home/ExtensionPrompt';
 import DemoSection from '../components/home/DemoSection';
 import { emailService } from '../services/api';
-import SmartLoadingButton from '../components/SmartLoadingButton';
+import SmartLoadingButton from '../components/common/SmartLoadingButton';
 
 const Home = () => {
   const [showExtensionPrompt, setShowExtensionPrompt] = useState(false);
