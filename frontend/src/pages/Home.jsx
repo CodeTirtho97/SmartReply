@@ -79,34 +79,62 @@ const Home = () => {
 
   // FIXED: Use emailService for generating replies
   const handleGenerateReply = async () => {
-    if (!emailInput.trim()) {
-      alert('Please paste an email to reply to!');
-      return;
-    }
+  if (!emailInput.trim()) {
+    alert('Please paste an email to reply to!');
+    return;
+  }
 
-    // Check local usage stats before making API call
-    if (!usageStats.canMakeCall || dailyUsage >= usageStats.maxCalls) {
-      setShowExtensionPrompt(true);
-      return;
-    }
+  // Check local usage stats before making API call
+  if (!usageStats.canMakeCall || dailyUsage >= usageStats.maxCalls) {
+    setShowExtensionPrompt(true);
+    return;
+  }
 
-    setIsGenerating(true);
-    setError('');
-    setGeneratedReply('');
+  setIsGenerating(true);
+  setError('');
+  setGeneratedReply('');
 
-    try {
-      // FIXED: Use emailService instead of direct fetch
-      const data = await emailService.generateReply({
+  try {
+    // CREATE a custom fetch with extended timeout for cold starts
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 seconds for cold starts
+
+    const response = await fetch('https://smartreply-v1-backend.onrender.com/api/email/generate-reply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         emailContent: emailInput.trim(),
         tone: selectedTone,
         customPrompt: "",
-      });
+      }),
+      signal: controller.signal // Add abort signal
+    });
 
-      // Handle successful response
-      if (data.reply || data.generatedReply) {
-        setGeneratedReply(data.reply || data.generatedReply);
-        
-        // Refresh usage stats after successful generation
+    clearTimeout(timeoutId); // Clear timeout on success
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Daily limit exceeded. Please try again tomorrow or install our Chrome extension!');
+      } else if (response.status >= 500) {
+        throw new Error('Server is temporarily unavailable. Please try again in a moment.');
+      } else if (response.status === 502 || response.status === 503) {
+        throw new Error('Server is starting up. Please wait a moment and try again.');
+      }
+      
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.error || `Server error (${response.status}). Please try again.`);
+    }
+
+    const data = await response.json();
+
+    // Handle successful response
+    if (data.reply || data.generatedReply || data.response) {
+      setGeneratedReply(data.reply || data.generatedReply || data.response);
+      
+      // Refresh usage stats after successful generation
+      try {
         const updatedUsage = await emailService.getUsage();
         setUsageStats({
           currentUsage: updatedUsage.currentUsage || 0,
@@ -116,30 +144,47 @@ const Home = () => {
           rateLimitEnabled: true
         });
         setDailyUsage(updatedUsage.currentUsage || 0);
-      } else {
-        throw new Error('No reply generated from server');
+      } catch (usageError) {
+        console.warn('Could not update usage stats:', usageError);
       }
-
-    } catch (error) {
-      console.error('Error generating reply:', error);
-      setError(error.message || 'Failed to generate reply. Please try again.');
-      
-      // If it's a rate limit error, update the UI accordingly
-      if (error.message.includes('Daily limit') || error.message.includes('rate limit')) {
-        setUsageStats(prev => ({
-          ...prev,
-          currentUsage: prev.maxCalls,
-          remainingCalls: 0,
-          canMakeCall: false
-        }));
-        setDailyUsage(usageStats.maxCalls);
-        setShowExtensionPrompt(true);
-      }
-      
-    } finally {
-      setIsGenerating(false);
+    } else {
+      throw new Error('No reply generated from server');
     }
-  };
+
+  } catch (error) {
+    // eslint-disable-next-line no-undef
+    clearTimeout(timeoutId); // Make sure to clear timeout on error
+    console.error('Error generating reply:', error);
+    
+    // Enhanced error messages for different scenarios
+    let errorMessage = 'Failed to generate reply. Please try again.';
+    
+    if (error.name === 'AbortError') {
+      errorMessage = 'Request timed out after 90 seconds. The server might be experiencing heavy load. Please try again in a few minutes.';
+    } else if (error.message.includes('timeout') || error.message.includes('sleeping')) {
+      errorMessage = 'Server is starting up after being idle. This can take up to 2 minutes. Please try again.';
+    } else if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+      errorMessage = 'Network error. The server might be warming up. Please check your connection and try again.';
+    } else if (error.message.includes('502') || error.message.includes('503')) {
+      errorMessage = 'Server is starting up. Please wait 1-2 minutes and try again.';
+    } else if (error.message.includes('Daily limit') || error.message.includes('rate limit')) {
+      setUsageStats(prev => ({
+        ...prev,
+        currentUsage: prev.maxCalls,
+        remainingCalls: 0,
+        canMakeCall: false
+      }));
+      setDailyUsage(usageStats.maxCalls);
+      setShowExtensionPrompt(true);
+      errorMessage = error.message;
+    }
+    
+    setError(errorMessage);
+    
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   const handleCopyReply = () => {
     navigator.clipboard.writeText(generatedReply);
