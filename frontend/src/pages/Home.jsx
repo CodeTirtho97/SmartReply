@@ -8,6 +8,7 @@ import ExtensionPrompt from '../components/home/ExtensionPrompt';
 import DemoSection from '../components/home/DemoSection';
 import { emailService } from '../services/api';
 import SmartLoadingButton from '../components/common/SmartLoadingButton';
+import { openChromeExtension } from '../utils/constants';
 
 const Home = () => {
   const [showExtensionPrompt, setShowExtensionPrompt] = useState(false);
@@ -39,10 +40,6 @@ const Home = () => {
     "Dear Team,\n\nI'm writing to inform you about the upcoming deadline for the client presentation. We need to finalize all materials by Friday. Please let me know if you need any assistance.\n\nThanks,\nMike",
     "Hello,\n\nI'm interested in learning more about your services. Could you provide me with a detailed quote for a custom web development project?\n\nLooking forward to hearing from you.\nAlex"
   ];
-
-  const handleInstallExtension = () => {
-    window.open('https://chrome.google.com/webstore/detail/smartreply-plus/YOUR_EXTENSION_ID', '_blank');
-  };
 
   // FIXED: Fetch current usage count using emailService
   useEffect(() => {
@@ -236,7 +233,7 @@ const Home = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={handleInstallExtension}
+                onClick={openChromeExtension}
                 className="bg-white text-blue-600 text-lg px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-lg flex items-center justify-center space-x-2"
               >
                 <Download className="w-5 h-5" />
@@ -272,7 +269,7 @@ const Home = () => {
               </div>
             </div>
             <button
-              onClick={handleInstallExtension}
+              onClick={openChromeExtension}
               className="bg-white text-red-600 px-8 py-4 rounded-lg text-lg font-bold hover:bg-gray-100 transition-colors shadow-lg"
             >
               <Download className="w-5 h-5 inline mr-2" />
@@ -489,7 +486,7 @@ const Home = () => {
                   <li>• One-click reply insertion</li>
                 </ul>
                 <button
-                  onClick={handleInstallExtension}
+                  onClick={openChromeExtension}
                   className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
                 >
                   <Download className="w-4 h-4" />
@@ -574,7 +571,7 @@ const Home = () => {
               <span>Explore Pro Features</span>
             </Link>
             <button
-              onClick={handleInstallExtension}
+              onClick={openChromeExtension}
               className="border-2 border-white text-white text-lg px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition-all duration-200 flex items-center justify-center space-x-2"
             >
               <Download className="w-5 h-5" />

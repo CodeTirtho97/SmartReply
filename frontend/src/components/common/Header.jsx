@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Download, Crown } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import { openChromeExtension } from '../../utils/constants';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -15,10 +16,6 @@ const Header = () => {
 
   const isActive = (path) => {
     return location.pathname === path;
-  };
-
-  const handleInstallExtension = () => {
-    window.open('https://chrome.google.com/webstore/detail/smartreply-plus/YOUR_EXTENSION_ID', '_blank');
   };
 
   return (
@@ -72,7 +69,7 @@ const Header = () => {
               <span>Pro</span>
             </Link>
             <button
-              onClick={handleInstallExtension}
+              onClick={openChromeExtension}
               className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-200 flex items-center space-x-2"
             >
               <Download className="w-4 h-4" />
@@ -126,7 +123,7 @@ const Header = () => {
             </Link>
             <button
               onClick={() => {
-                handleInstallExtension();
+                openChromeExtension;
                 setIsMenuOpen(false);
               }}
               className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all duration-200"

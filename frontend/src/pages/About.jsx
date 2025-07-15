@@ -17,6 +17,7 @@ import {
   CheckCircle,
   Clock
 } from 'lucide-react';
+import { openChromeExtension } from '../utils/constants';
 
 const About = () => {
   const features = [
@@ -55,10 +56,6 @@ const About = () => {
     { number: "5", label: "Different tone options", suffix: "" },
     { number: "100%", label: "Privacy guaranteed", suffix: "" }
   ];
-
-  const handleInstallExtension = () => {
-    window.open('https://chrome.google.com/webstore/detail/smartreply-plus/YOUR_EXTENSION_ID', '_blank');
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -116,7 +113,7 @@ const About = () => {
               </div>
             </div>
             <button
-              onClick={handleInstallExtension}
+              onClick={openChromeExtension}
               className="bg-white text-red-600 px-8 py-4 rounded-lg text-lg font-bold hover:bg-gray-100 transition-colors shadow-lg"
             >
               <Download className="w-5 h-5 inline mr-2" />
@@ -293,7 +290,7 @@ const About = () => {
                 <span>Explore Pro Features</span>
               </Link>
               <button
-                onClick={handleInstallExtension}
+                onClick={openChromeExtension}
                 className="border-2 border-white text-white text-lg px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition-all duration-200 flex items-center justify-center space-x-2"
               >
                 <Download className="w-5 h-5" />
@@ -385,7 +382,7 @@ const About = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={handleInstallExtension}
+              onClick={openChromeExtension}
               className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-lg px-8 py-4 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg"
             >
               <Download className="w-5 h-5" />

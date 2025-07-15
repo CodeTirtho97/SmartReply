@@ -4,6 +4,7 @@ import {
   Zap, Settings, Shield, Clock, Star, Download, 
   ChevronRight, Mail, Palette, Crown 
 } from 'lucide-react';
+import { openChromeExtension } from '../utils/constants';
 
 const Features = () => {
   const [selectedTone, setSelectedTone] = useState('professional');
@@ -55,9 +56,6 @@ const Features = () => {
     { value: 'concise', label: 'Concise', color: 'bg-red-500', example: 'Received. Will respond by EOD.' }
   ];
 
-  const handleInstallExtension = () => {
-    window.open('https://chrome.google.com/webstore/detail/smartreply-plus/YOUR_EXTENSION_ID', '_blank');
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -72,7 +70,7 @@ const Features = () => {
               Everything you need to transform your email productivity
             </p>
             <button
-              onClick={handleInstallExtension}
+              onClick={openChromeExtension}
               className="bg-white text-blue-600 text-lg px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-lg flex items-center space-x-2 mx-auto"
             >
               <Download className="w-5 h-5" />
@@ -243,7 +241,7 @@ const Features = () => {
                 <span>Explore Pro Features</span>
               </Link>
               <button
-                onClick={handleInstallExtension}
+                onClick={openChromeExtension}
                 className="border-2 border-white text-white text-lg px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition-all duration-200 flex items-center justify-center space-x-2"
               >
                 <Download className="w-5 h-5" />
@@ -265,7 +263,7 @@ const Features = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={handleInstallExtension}
+              onClick={openChromeExtension}
               className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-lg px-8 py-4 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-200 flex items-center justify-center space-x-2"
             >
               <Download className="w-5 h-5" />

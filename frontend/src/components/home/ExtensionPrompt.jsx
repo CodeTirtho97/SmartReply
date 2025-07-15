@@ -1,13 +1,14 @@
 import React from 'react';
 import { Download, X, Zap, Crown, Palette, Settings } from 'lucide-react';
+import { openChromeExtension } from '../../utils/constants';
 
 const ExtensionPrompt = ({ isVisible, onClose }) => {
   if (!isVisible) return null;
 
   const handleInstallClick = () => {
-    window.open('https://chrome.google.com/webstore/detail/smartreply-plus/YOUR_EXTENSION_ID', '_blank');
-    onClose();
-  };
+  openChromeExtension();
+  onClose();
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">

@@ -4,6 +4,7 @@ import {
   Star, Zap, Shield, Settings, Palette, BarChart3, 
   Clock, Mail, Brain, CheckCircle, X, Crown, Sparkles, Download 
 } from 'lucide-react';
+import { openChromeExtension } from '../utils/constants';
 
 const Pro = () => {
   const [expandedFeature, setExpandedFeature] = useState(null);
@@ -70,10 +71,6 @@ const Pro = () => {
     setExpandedFeature(expandedFeature === featureId ? null : featureId);
   };
 
-  const handleInstallExtension = () => {
-    window.open('https://chrome.google.com/webstore/detail/smartreply-plus/YOUR_EXTENSION_ID', '_blank');
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Hero Section */}
@@ -114,7 +111,7 @@ const Pro = () => {
                 <span>Join Waitlist</span>
               </button>
               <button 
-                onClick={handleInstallExtension}
+                onClick={openChromeExtension}
                 className="border-2 border-white text-white text-lg px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-all duration-200 flex items-center justify-center space-x-2"
               >
                 <Download className="w-5 h-5" />
@@ -294,7 +291,7 @@ const Pro = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={handleInstallExtension}
+              onClick={openChromeExtension}
               className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-lg px-8 py-4 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg"
             >
               <Download className="w-5 h-5" />
