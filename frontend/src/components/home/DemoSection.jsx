@@ -7,25 +7,26 @@ import {
 const DemoSection = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [selectedTone, setSelectedTone] = useState('professional');
+  const [imageErrors, setImageErrors] = useState({});
 
   const demoSteps = [
     {
       title: "Compose or Reply",
       description: "Open any email in Gmail that you want to reply to",
       icon: <Mail className="w-6 h-6" />,
-      screenshot: "/screenshots/step1-gmail.png"
+      screenshot: "/screenshots/Step1_Compose_Reply.png"
     },
     {
       title: "Choose Your Tone",
       description: "Select from 5 different writing styles",
       icon: <Settings className="w-6 h-6" />,
-      screenshot: "/screenshots/step2-settings.png"
+      screenshot: "/screenshots/Step2_Choose_Tone.png"
     },
     {
       title: "Generate Instantly",
       description: "AI creates a perfect reply in seconds",
       icon: <Zap className="w-6 h-6" />,
-      screenshot: "/screenshots/step3-result.png"
+      screenshot: "/screenshots/Step3_AI_Replies.png"
     }
   ];
 
@@ -43,6 +44,10 @@ const DemoSection = () => {
     friendly: "Hi there! Thanks so much for your message. I'd be happy to help you with this!",
     formal: "Dear Sir/Madam, I acknowledge receipt of your correspondence and will address your inquiry with due diligence.",
     concise: "Received. Will respond by EOD."
+  };
+
+  const handleImageError = (stepIndex) => {
+    setImageErrors(prev => ({ ...prev, [stepIndex]: true }));
   };
 
   return (
@@ -102,19 +107,28 @@ const DemoSection = () => {
               <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
                 Step {activeStep + 1}: {demoSteps[activeStep].title}
               </h4>
-              <div className="bg-white dark:bg-gray-600 rounded p-4 border-2 border-dashed border-gray-300 dark:border-gray-500">
-                <img
-                  src={demoSteps[activeStep].screenshot}
-                  alt={`Step ${activeStep + 1} demo`}
-                  className="w-full rounded"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'block';
-                  }}
-                />
-                <div className="text-center text-gray-500 dark:text-gray-400 py-8" style={{display: 'none'}}>
-                  📱 Demo Screenshot: {demoSteps[activeStep].title}
-                </div>
+              <div className="bg-white dark:bg-gray-600 rounded p-4 border-2 border-dashed border-gray-300 dark:border-gray-500 min-h-[300px] flex items-center justify-center">
+                {!imageErrors[activeStep] ? (
+                  <img
+                    src={demoSteps[activeStep].screenshot}
+                    alt={`Step ${activeStep + 1} demo: ${demoSteps[activeStep].title}`}
+                    className="w-full max-w-md rounded shadow-lg"
+                    onError={() => handleImageError(activeStep)}
+                    onLoad={() => console.log(`Image loaded: ${demoSteps[activeStep].screenshot}`)}
+                  />
+                ) : (
+                  <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                    <div className="text-6xl mb-4">
+                      {activeStep === 0 ? '📧' : activeStep === 1 ? '⚙️' : '✨'}
+                    </div>
+                    <div className="text-lg font-medium mb-2">
+                      {demoSteps[activeStep].title}
+                    </div>
+                    <div className="text-sm">
+                      Demo Screenshot: {demoSteps[activeStep].description}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
